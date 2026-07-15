@@ -1,0 +1,27 @@
+{
+  "name": "Lüftungscheck",
+  "short_name": "Lüften?",
+  "description": "Prüfe ob Lüften gerade sinnvoll ist – mit 48h-Wetterprognose für deine PLZ.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0d1117",
+  "background_color": "#0d1117",
+  "lang": "de",
+  "categories": ["utilities", "weather"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
