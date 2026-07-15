@@ -1,4 +1,4 @@
-# Lüftungscheck -> https://goetzpil9.github.io/lueftungscheck/
+# Lüftungscheck https://goetzpil9.github.io/lueftungscheck/
 
 Zeigt auf einen Blick, ob Lüften gerade sinnvoll ist – oder ob es die Luftfeuchtigkeit in der Wohnung eher verschlimmert.
 
