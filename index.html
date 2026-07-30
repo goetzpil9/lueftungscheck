@@ -158,7 +158,7 @@ input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appear
 <!-- UPDATE BANNER -->
 <div class="update-banner" id="update-banner">
   <span class="update-banner-text">🔄 Neue Version verfügbar</span>
-  <button class="update-banner-btn" onclick="location.reload()">Aktualisieren</button>
+  <button class="update-banner-btn" onclick="forceUpdate()">Aktualisieren</button>
 </div>
 
 <!-- HEADER -->
@@ -655,6 +655,36 @@ if ('serviceWorker' in navigator) {
       document.getElementById('update-banner').className = 'update-banner visible';
     }
   });
+}
+
+// ─────────────────────────────────────────────
+// FORCE UPDATE – kompletter Reset, kein Warten auf
+// den normalen SW-Update-Mechanismus. Meldet alle
+// Service Worker ab, löscht alle Caches, lädt dann
+// komplett frisch neu. Entspricht manuellem
+// "Website-Daten löschen" in den Browser-Einstellungen,
+// nur direkt per Knopfdruck in der App.
+// ─────────────────────────────────────────────
+async function forceUpdate() {
+  const btn = document.querySelector('.update-banner-btn');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(reg => reg.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(key => caches.delete(key)));
+    }
+  } catch (err) {
+    console.log('Fehler beim Zurücksetzen:', err);
+  } finally {
+    // Cache-Buster-Query-Parameter erzwingt zusätzlich eine
+    // komplett frische Netzwerk-Anfrage statt Browser-HTTP-Cache
+    location.href = location.pathname + '?refresh=' + Date.now();
+  }
 }
 </script>
 </body>
