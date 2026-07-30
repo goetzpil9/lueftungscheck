@@ -6,7 +6,7 @@
 //   Wetter-APIs               → Network First → Fallback auf Cache
 // ─────────────────────────────────────────────────────────────
 
-const VERSION       = 'v1.0.0';
+const VERSION       = 'v1.0.1';
 const CACHE_SHELL   = `lueften-shell-${VERSION}`;
 const CACHE_FONTS   = `lueften-fonts-${VERSION}`;
 const CACHE_WEATHER = `lueften-weather-${VERSION}`;

@@ -21,6 +21,13 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:30px;overflow-x:hidden;}
 
+/* ── UPDATE BANNER ── */
+.update-banner{position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:11px 16px;display:none;align-items:center;justify-content:space-between;gap:10px;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,0.3);}
+.update-banner.visible{display:flex;}
+.update-banner-text{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:600;}
+.update-banner-btn{background:#fff;color:#1d4ed8;border:none;border-radius:8px;padding:7px 13px;font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.update-banner-btn:active{transform:scale(.96);}
+
 /* ── HEADER ── */
 header{padding:22px 20px 14px;text-align:center;position:relative;}
 header::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:40px;height:2px;background:linear-gradient(90deg,var(--inside),var(--outside));border-radius:2px;}
@@ -105,7 +112,7 @@ input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appear
 .forecast-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;}
 .forecast-title{font-size:.78rem;font-weight:700;letter-spacing:.3px;}
 .forecast-location{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--muted);}
-.forecast-summary{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:.7rem;line-height:1.75;color:var(--muted);}
+.forecast-summary{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:.7rem;line-height:1.9;color:var(--muted);overflow-wrap:break-word;word-break:break-word;}
 .forecast-summary strong{color:var(--text);}
 .sum-good{color:var(--good);}
 .sum-bad{color:var(--bad);}
@@ -147,6 +154,12 @@ input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appear
 </style>
 </head>
 <body>
+
+<!-- UPDATE BANNER -->
+<div class="update-banner" id="update-banner">
+  <span class="update-banner-text">🔄 Neue Version verfügbar</span>
+  <button class="update-banner-btn" onclick="location.reload()">Aktualisieren</button>
+</div>
 
 <!-- HEADER -->
 <header>
@@ -514,18 +527,23 @@ function buildForecast(dpIn, ahIn) {
     if (wStart) windows.push({ from: wStart, to: slots[slots.length-1] });
 
     const dayName = t => ['So','Mo','Di','Mi','Do','Fr','Sa'][t.time.getDay()];
-    const winStrings = windows.slice(0, 4).map(w =>
+    const shownWindows = windows.slice(0, 4);
+    const extraCount   = windows.length - shownWindows.length;
+    const winStrings = shownWindows.map(w =>
       w.from === w.to
         ? `<strong class="sum-good">${dayName(w.from)} ${fmt(w.from)}</strong>`
         : `<strong class="sum-good">${dayName(w.from)} ${fmt(w.from)}–${fmt(w.to)}</strong>`
     );
+    const extraNote = extraCount > 0 ? `<br><span style="opacity:.7">+ ${extraCount} weitere Fenster</span>` : '';
 
     if (goodSlots[0].isNow) {
       const last = goodSlots[goodSlots.length - 1];
-      summaryHTML = `✅ Jetzt lüften! Taupunkt außen tiefer bis ca. <strong class="sum-good">${fmt(last)} Uhr</strong>.<br>`;
-      if (windows.length > 1) summaryHTML += `Weitere Fenster: ${winStrings.slice(1).join(' · ')}`;
+      summaryHTML = `✅ Jetzt lüften! Taupunkt außen tiefer bis ca. <strong class="sum-good">${fmt(last)} Uhr</strong>.`;
+      if (windows.length > 1) {
+        summaryHTML += `<br>Weitere Fenster:<br>${winStrings.slice(1).join('<br>')}${extraNote}`;
+      }
     } else {
-      summaryHTML = `Aktuell Taupunkt außen zu hoch. Günstigste Fenster:<br>${winStrings.join(' · ')}`;
+      summaryHTML = `Aktuell Taupunkt außen zu hoch. Günstigste Fenster:<br>${winStrings.join('<br>')}${extraNote}`;
     }
   }
 
@@ -544,8 +562,11 @@ function buildForecast(dpIn, ahIn) {
     groups[key].slots.push(s);
   });
 
-  const maxDP = Math.max(...slots.map(s => s.dp));
-  const minDP = Math.min(...slots.map(s => s.dp));
+  // Balkenhöhe = Stärke der Empfehlung (Taupunkt-Differenz), NICHT der rohe Außen-Taupunkt.
+  // So heißt: hoher Balken = eindeutiges Signal (egal ob gut/schlecht), niedriger Balken = knapp am Schwellwert.
+  const diffs   = slots.map(s => Math.abs(s.diff));
+  const maxDiff = Math.max(...diffs);
+  const minDiff = Math.min(...diffs);
 
   Object.values(groups).forEach(g => {
     const dayGroup = document.createElement('div');
@@ -559,8 +580,7 @@ function buildForecast(dpIn, ahIn) {
     g.slots.forEach(s => {
       const el    = document.createElement('div');
       el.className = 't-slot' + (s.isNow ? ' now-slot' : '');
-      // Balkenhöhe = Taupunkt außen relativ (hoher Taupunkt = hoher Balken = mehr Feuchte)
-      const barH  = Math.round(((s.dp - minDP) / (maxDP - minDP + 0.01)) * 75 + 10);
+      const barH  = Math.round(((Math.abs(s.diff) - minDiff) / (maxDiff - minDiff + 0.01)) * 75 + 10);
       const icon  = s.state === 'good' ? '✅' : s.state === 'bad' ? '🚫' : '≈';
       const sign  = s.diff >= 0 ? '−' : '+';
       // Tooltip zeigt Taupunkt außen
@@ -612,13 +632,24 @@ function resetAll() {
 }
 
 // ─────────────────────────────────────────────
-// SERVICE WORKER – Offline-Fähigkeit
+// SERVICE WORKER – Offline-Fähigkeit + Update-Banner
 // ─────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
+  // Wichtig: merken ob beim Laden bereits ein SW aktiv war.
+  // Nur DANN ist ein späterer Controller-Wechsel ein echtes Update –
+  // beim allerersten Installieren gäbe es sonst fälschlich einen Banner.
+  const hadControllerBefore = !!navigator.serviceWorker.controller;
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => console.log('SW registriert:', reg.scope))
       .catch(err => console.log('SW-Fehler:', err));
+  });
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadControllerBefore) {
+      document.getElementById('update-banner').className = 'update-banner visible';
+    }
   });
 }
 </script>
